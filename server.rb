@@ -32,40 +32,46 @@ class MyServer < Sinatra::Base
   end
 
   post '/reload' do
-    if params['token'] != ENV['API_TOKEN']
+    begin
+      if params['token'] != ENV['API_TOKEN']
+        json({
+          'text' => '잘못된 요청'
+        })
+      else
+        exist_container = Docker::Container.get('rorla-latest')
+        exist_container.stop
+        exist_container.delete
+
+        new_container = Docker::Container.create(
+          'name' => 'rorla-latest',
+          'Image' => 'rorla/rorla',
+          'Env' => [
+            "SECRET_KEY_BASE=#{ENV['SECRET_KEY_BASE']}",
+            "MANDRILL_USERNAME=#{ENV['MANDRILL_USERNAME']}",
+            "MANDRILL_APIKEY=#{ENV['MANDRILL_APIKEY']}",
+            "RORLA_HOST=#{ENV['RORLA_HOST']}",
+            "RORLA_LOGENTRIES_TOKEN=#{ENV['RORLA_LOGENTRIES_TOKEN']}"
+          ]
+        )
+
+        new_container.start(
+          'Links' => ['mysql:mysql'],
+          'VolumesFrom' => ['rorla_uploads'],
+          'PortBindings' => {
+            '80/tcp' => [{ 
+              'HostIp' => '0.0.0.0',
+              'HostPort' => '80'
+            }]
+          }
+        )
+
+        json({
+          'text' => new_container.json
+        })
+      end
+    rescue Exception => e
       json({
-        'text' => '잘못된 요청'
-      })
-    else
-      exist_container = Docker::Container.get('rorla-latest')
-      exist_container.stop
-      exist_container.delete
-
-      new_container = Docker::Container.create(
-        'name' => 'rorla-latest',
-        'Image' => 'rorla/rorla',
-        'Env' => [
-          "SECRET_KEY_BASE=#{ENV['SECRET_KEY_BASE']}",
-          "MANDRILL_USERNAME=#{ENV['MANDRILL_USERNAME']}",
-          "MANDRILL_APIKEY=#{ENV['MANDRILL_APIKEY']}",
-          "RORLA_HOST=#{ENV['RORLA_HOST']}",
-          "RORLA_LOGENTRIES_TOKEN=#{ENV['RORLA_LOGENTRIES_TOKEN']}"
-        ]
-      )
-
-      new_container.start(
-        'Links' => ['mysql:mysql'],
-        'VolumesFrom' => ['rorla_uploads'],
-        'PortBindings' => {
-          '80/tcp' => [{ 
-            'HostIp' => '0.0.0.0',
-            'HostPort' => '80'
-          }]
-        }
-      )
-
-      json({
-        'text' => new_container.json
+        'text' => "에러 발생. #{e}"
       })
     end
   end
