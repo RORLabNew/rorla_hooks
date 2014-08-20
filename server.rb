@@ -27,7 +27,8 @@ class MyServer < Sinatra::Base
   end
 
   post '/reload' do
-    result = system('/root/script/rorla_reload.sh')
+    result = system('/app/rorla_reload.sh')
+    p "result => #{result}\n"
     "result => #{result}\n"
   end
 end
