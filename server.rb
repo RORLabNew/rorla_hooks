@@ -66,7 +66,7 @@ class MyServer < Sinatra::Base
           'name' => 'rorla-latest-migration',
           'Image' => image_name,
           'Env' => env,
-          'Cmd' => 'bundle exec rake db:migrate'
+          'Cmd' => ['bin/rake', 'db:migrate']
         )
 
         # run migration container
@@ -74,6 +74,7 @@ class MyServer < Sinatra::Base
           'Links' => links,
           'VolumesFrom' => volumes_from
         )
+        migration_container.stop
         migration_container.delete
         
         # create new container
