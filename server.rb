@@ -66,7 +66,7 @@ class MyServer < Sinatra::Base
           'name' => 'rorla-latest-migration',
           'Image' => image_name,
           'Env' => env,
-          'Cmd' => ['bundle exec rake db:migrate']
+          'Cmd' => 'bundle exec rake db:migrate'
         )
 
         # run migration container
