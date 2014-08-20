@@ -27,9 +27,32 @@ class MyServer < Sinatra::Base
   end
 
   post '/reload' do
-    result = system('/app/rorla_reload.sh')
-    p "result => #{result}\n"
-    "result => #{result}\n"
+    exist_container = Docker::Container.get('rorla-latest')
+    exist_container.stop
+    exist_container.delete
+
+    new_container = Docker::Container.create(
+      'name' => 'rorla-latest',
+      'Image' => 'rorla/rorla',
+      'Env' => [
+        "SECRET_KEY_BASE=#{ENV['SECRET_KEY_BASE']}",
+        "MANDRILL_USERNAME=#{ENV['MANDRILL_USERNAME']}",
+        "MANDRILL_APIKEY=#{ENV['MANDRILL_APIKEY']}",
+        "RORLA_HOST=#{ENV['RORLA_HOST']}",
+        "RORLA_LOGENTRIES_TOKEN=#{ENV['RORLA_LOGENTRIES_TOKEN']}"
+      ]
+    )
+
+    new_container.start(
+      'Links' => ['mysql:mysql'],
+      'VolumesFrom' => ['rorla_uploads'],
+      'PortBindings' => {
+        '80/tcp' => [{ 
+          'HostIp' => '0.0.0.0',
+          'HostPort' => '80'
+        }]
+      }
+    )
   end
 end
 
