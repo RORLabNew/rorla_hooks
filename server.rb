@@ -38,6 +38,10 @@ class MyServer < Sinatra::Base
           'text' => '잘못된 요청'
         })
       else
+        # pull latest image
+        Docker::Image.create('fromImage' => 'rorla/rorla', 'tag' => 'latest')
+
+        # stop exist container
         begin
           exist_container = Docker::Container.get('rorla-latest')
           exist_container.stop
@@ -46,6 +50,7 @@ class MyServer < Sinatra::Base
           puts '기존에 생성된 컨테이너 없음'
         end
         
+        # create new container
         new_container = Docker::Container.create(
           'name' => 'rorla-latest',
           'Image' => 'rorla/rorla',
@@ -58,6 +63,7 @@ class MyServer < Sinatra::Base
           ]
         )
 
+        # run new container
         new_container.start(
           'Links' => ['mysql:mysql'],
           'VolumesFrom' => ['rorla_uploads'],
