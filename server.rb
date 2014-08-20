@@ -49,24 +49,44 @@ class MyServer < Sinatra::Base
         rescue Docker::Error::NotFoundError => e
           puts '기존에 생성된 컨테이너 없음'
         end
+
+        image_name = 'rorla/rorla'
+        env = [
+          "SECRET_KEY_BASE=#{ENV['SECRET_KEY_BASE']}",
+          "MANDRILL_USERNAME=#{ENV['MANDRILL_USERNAME']}",
+          "MANDRILL_APIKEY=#{ENV['MANDRILL_APIKEY']}",
+          "RORLA_HOST=#{ENV['RORLA_HOST']}",
+          "RORLA_LOGENTRIES_TOKEN=#{ENV['RORLA_LOGENTRIES_TOKEN']}"
+        ]
+        links = ['mysql:mysql']
+        volumes_from = ['rorla_uploads']
+
+        # create migration container
+        migration_container = Docker::Container.create(
+          'name' => 'rorla-latest-migration',
+          'Image' => image_name,
+          'Env' => env,
+          'Cmd' => ['bundle exec rake db:migrate']
+        )
+
+        # run migration container
+        migration_container.start(
+          'Links' => links,
+          'VolumesFrom' => volumes_from
+        )
+        migration_container.delete
         
         # create new container
         new_container = Docker::Container.create(
           'name' => 'rorla-latest',
-          'Image' => 'rorla/rorla',
-          'Env' => [
-            "SECRET_KEY_BASE=#{ENV['SECRET_KEY_BASE']}",
-            "MANDRILL_USERNAME=#{ENV['MANDRILL_USERNAME']}",
-            "MANDRILL_APIKEY=#{ENV['MANDRILL_APIKEY']}",
-            "RORLA_HOST=#{ENV['RORLA_HOST']}",
-            "RORLA_LOGENTRIES_TOKEN=#{ENV['RORLA_LOGENTRIES_TOKEN']}"
-          ]
+          'Image' => image_name,
+          'Env' => env
         )
 
         # run new container
         new_container.start(
-          'Links' => ['mysql:mysql'],
-          'VolumesFrom' => ['rorla_uploads'],
+          'Links' => links,
+          'VolumesFrom' => volumes_from,
           'PortBindings' => {
             '80/tcp' => [{ 
               'HostIp' => '0.0.0.0',
