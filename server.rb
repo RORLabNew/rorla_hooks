@@ -38,10 +38,14 @@ class MyServer < Sinatra::Base
           'text' => '잘못된 요청'
         })
       else
-        exist_container = Docker::Container.get('rorla-latest')
-        exist_container.stop
-        exist_container.delete
-
+        begin
+          exist_container = Docker::Container.get('rorla-latest')
+          exist_container.stop
+          exist_container.delete
+        rescue Docker::Error::NotFoundError => e
+          puts '기존에 생성된 컨테이너 없음'
+        end
+        
         new_container = Docker::Container.create(
           'name' => 'rorla-latest',
           'Image' => 'rorla/rorla',
@@ -65,8 +69,10 @@ class MyServer < Sinatra::Base
           }
         )
 
+        container_info = new_container.json
+
         json({
-          'text' => new_container.json
+          'text' => "#{container_info['Name']} container launch. #{container_info['State']}"
         })
       end
     rescue Exception => e
