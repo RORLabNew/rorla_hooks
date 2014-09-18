@@ -17,7 +17,4 @@ $ docker run -d -p 8443:8443 -v /var/run/docker.sock:/var/run/docker.sock -v /ro
 
 ## Build & Push
 
-```
-$ docker build -t rorla/rorla-hooks .
-$ docker push rorla/rorla-hooks
-```
+자동으로 Docker hub 에서 진행된다. github에 푸쉬만 하면됨.
