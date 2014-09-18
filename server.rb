@@ -26,13 +26,44 @@ class MyServer < Sinatra::Base
   helpers Sinatra::JSON
 
   get '/' do
+    puts params
     json({ 
       'text' => '배포 테스트 ~!' 
     })
   end
 
+  post '/v2/reload' do
+    begin
+      puts params
+      if params['token'] != ENV['API_TOKEN']
+        json({
+          'text' => '잘못된 요청'
+        })
+      else
+        puts "RELOAD START"
+        env = [
+          "SECRET_KEY_BASE=#{ENV['SECRET_KEY_BASE']}",
+          "MANDRILL_USERNAME=#{ENV['MANDRILL_USERNAME']}",
+          "MANDRILL_APIKEY=#{ENV['MANDRILL_APIKEY']}",
+          "RORLA_HOST=#{ENV['RORLA_HOST']}",
+          "RORLA_LOGENTRIES_TOKEN=#{ENV['RORLA_LOGENTRIES_TOKEN']}"
+        ]
+        result = `#{env.join(' ')} /bin/bash reload.sh`
+        puts "RELOAD END"
+        json({
+          'text' => result
+        })
+      end
+    rescue Exception => e
+      json({
+        'text' => "에러 발생. #{e}"
+      })
+    end
+  end
+
   post '/reload' do
     begin
+      puts params
       if params['token'] != ENV['API_TOKEN']
         json({
           'text' => '잘못된 요청'
